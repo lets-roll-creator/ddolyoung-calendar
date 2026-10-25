@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>똘영이 Calendar - 나의 교대근무 달력</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@700&family=Gowun+Dodum&family=Jua&family=Nunito:wght@800;900&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        cute: ['Jua', 'Gowun Dodum', 'sans-serif'],
+                        title: ['Gaegu', 'Jua', 'sans-serif'],
+                        en: ['Nunito', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Jua', 'Gowun Dodum', sans-serif;
+            background: linear-gradient(135deg, #FFF0F3 0%, #FFF9E6 50%, #E8F4F8 100%);
+            color: #5A483C;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Phone Container Frame */
+        .phone-frame {
+            width: 100%;
+            max-width: 460px;
+            background: linear-gradient(180deg, #FFFDF9 0%, #FFF8EE 100%);
+            border-radius: 32px;
+            box-shadow: 0 25px 50px -12px rgba(230, 180, 160, 0.4), inset 0 0 0 2px #FFFFFF;
+            border: 6px solid #FADADD;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        /* Title Text Gradient & Shadow */
+        .title-pastel {
+            background: linear-gradient(135deg, #FF6B8B 0%, #FFA07A 50%, #FFD166 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(2px 2px 0px #FFFFFF) drop-shadow(-1px -1px 0px #FFFFFF);
+        }
+
+        /* Day Card Styling */
+        .day-card {
+            background-color: #FFFFFF;
+            border: 1.5px solid #FCE4EC;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(220, 190, 190, 0.12);
+            transition: transform 0.15s ease, border-color 0.2s;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 4px 2px;
+            min-height: 92px;
+        }
+
+        .day-card:active {
+            transform: scale(0.96);
+        }
+
+        .day-card.is-today {
+            border: 2px solid #FF6B8B !important;
+            background-color: #FFF0F3 !important;
+            box-shadow: 0 0 8px rgba(255, 107, 139, 0.35);
+        }
+
+        .empty-day-card {
+            background-color: #F8F1F2;
+            border-radius: 12px;
+            opacity: 0.5;
+            min-height: 92px;
+        }
+
+        /* 완벽한 원형 뱃지 스타일 정의 */
+        .shift-circle {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 13px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.12);
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .btn-press {
+            transition: transform 0.1s ease;
+        }
+        .btn-press:active {
+            transform: scale(0.93);
+        }
+
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #F8BBD0;
+            border-radius: 4px;
+        }
+
+        /* Floating Hearts Animation */
+        @keyframes floatUp {
+            0% { transform: translateY(0px) scale(0.5); opacity: 1; }
+            100% { transform: translateY(-120px) scale(1.4); opacity: 0; }
+        }
+        .floating-heart {
+            position: absolute;
+            animation: floatUp 0.8s ease-out forwards;
+            pointer-events: none;
+            z-index: 99;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen p-0 sm:p-2">
+
+    <!-- TOP TOOLBAR -->
+    <div class="w-full max-w-md flex justify-between items-center mb-1 px-4 py-0.5 text-xs text-[#5A483C]">
+        <div class="flex items-center gap-1.5 font-bold">
+            <span class="bg-white px-2.5 py-0.5 rounded-full border border-[#F8BBD0] shadow-2xs text-xs">
+                ✨ 똘영이 Calendar
+            </span>
+        </div>
+    </div>
+
+    <!-- MAIN MOBILE APP FRAME -->
+    <div id="phoneFrame" class="phone-frame h-[98vh] max-h-[860px] flex flex-col relative overflow-hidden">
+
+        <!-- APP HEADER -->
+        <div class="pt-3 pb-2 px-3 flex items-center justify-between relative z-20 bg-white/70 backdrop-blur-xs border-b border-pink-100/60 flex-shrink-0">
+            <div class="flex items-center gap-2.5">
+                <!-- 프로필 (귀여운 병아리 🐥) -->
+                <div class="w-10 h-10 rounded-full bg-amber-100 border-2 border-[#FF80AB] flex items-center justify-center shadow-sm relative overflow-hidden flex-shrink-0 text-xl">
+                    🐥
+                </div>
+                <div class="flex flex-col">
+                    <span id="displayTitleName" class="text-xl font-black font-cute title-pastel tracking-tight leading-tight">똘영이 Calendar</span>
+                    <span id="displaySubTitle" class="text-xs font-en font-black text-[#9E8473] tracking-wide">February 2026</span>
+                </div>
+            </div>
+
+            <!-- Quick Switcher -->
+            <div class="flex items-center gap-1 bg-white/90 px-2 py-0.5 rounded-xl border border-[#F8BBD0] shadow-2xs">
+                <button onclick="changeMonth(-1)" class="w-6.5 h-6.5 text-[#5A483C] hover:bg-pink-100 rounded-lg font-bold flex items-center justify-center btn-press">
+                    <i class="fa-solid fa-chevron-left text-xs"></i>
+                </button>
+                <button onclick="goToToday()" class="text-xs px-1 font-bold text-[#FF4081] hover:text-pink-600 btn-press">오늘</button>
+                <button onclick="changeMonth(1)" class="w-6.5 h-6.5 text-[#5A483C] hover:bg-pink-100 rounded-xl font-bold flex items-center justify-center btn-press">
+                    <i class="fa-solid fa-chevron-right text-xs"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- MAIN CONTENT AREA -->
+        <div class="flex-1 px-1.5 pt-1 pb-16 overflow-y-auto relative z-20 flex flex-col" id="mainScrollArea">
+            
+            <!-- CALENDAR VIEW -->
+            <div id="calendarView" class="space-y-1 my-auto">
+                <!-- 요일 헤더 -->
+                <div class="grid grid-cols-7 gap-1 bg-[#FFF0F3] py-1.5 px-0.5 rounded-xl text-center text-sm font-black border border-[#F8BBD0] shadow-xs">
+                    <div class="text-rose-600">일</div>
+                    <div class="text-[#5A483C]">월</div>
+                    <div class="text-[#5A483C]">화</div>
+                    <div class="text-[#5A483C]">수</div>
+                    <div class="text-[#5A483C]">목</div>
+                    <div class="text-[#5A483C]">금</div>
+                    <div class="text-blue-600">토</div>
+                </div>
+                <div id="calendarGrid" class="grid grid-cols-7 gap-1 relative">
+                    <!-- Dynamic -->
+                </div>
+            </div>
+
+            <!-- MEMO VIEW -->
+            <div id="memoView" class="hidden space-y-2 pt-1">
+                <div class="flex justify-between items-center bg-white/90 p-2 rounded-2xl border border-pink-100 shadow-2xs">
+                    <span class="font-bold text-sm text-[#5A483C]">📝 등록된 메모 목록</span>
+                    <button onclick="addNewMemoPrompt()" class="bg-[#FF80AB] text-white px-3 py-1 rounded-xl text-xs font-bold shadow-2xs btn-press">+ 메모 작성</button>
+                </div>
+                <div id="memoListContainer" class="space-y-2"></div>
+            </div>
+
+            <!-- SETTINGS VIEW -->
+            <div id="settingsView" class="hidden space-y-2 pt-1">
+                <!-- 근무 형태 추가/수정/삭제 섹션 -->
+                <div class="bg-white/95 p-3 rounded-2xl border-2 border-[#F8BBD0] space-y-2 shadow-2xs">
+                    <h3 class="font-bold text-xs text-[#5A483C]">🛠️ 근무 형태 관리 (수정 / 추가 / 삭제)</h3>
+                    <p class="text-[11px] text-gray-500">근무 코드를 터치하여 수정하거나 새로운 근무 형태를 추가하세요.</p>
+                    
+                    <div class="bg-pink-50/50 p-2.5 rounded-xl border border-pink-200 space-y-2 text-xs">
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="text" id="newShiftCode" placeholder="코드 (예: R)" class="bg-white border border-pink-200 rounded-lg px-2 py-1 font-bold">
+                            <input type="text" id="newShiftName" placeholder="명칭 (예: 재택)" class="bg-white border border-pink-200 rounded-lg px-2 py-1 font-bold">
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-bold">배경 색상:</span>
+                            <input type="color" id="newShiftColor" value="#5DA8DC" class="w-8 h-6 rounded cursor-pointer border-0">
+                        </div>
+                        <button onclick="addNewShiftType()" class="w-full bg-[#FF80AB] hover:bg-[#FF4081] text-white font-bold py-1.5 rounded-lg btn-press shadow-2xs">+ 새 근무 형태 추가하기</button>
+                    </div>
+
+                    <div id="shiftTypeListContainer" class="space-y-1 max-h-40 overflow-y-auto pr-1">
+                        <!-- Dynamic Shift Types List -->
+                    </div>
+                </div>
+
+                <div class="bg-white/95 p-3 rounded-2xl border-2 border-[#F8BBD0] space-y-2 shadow-2xs">
+                    <h3 class="font-bold text-xs text-[#5A483C]">⚡ 교대 패턴 구간별 무한 반복 생성</h3>
+                    <p class="text-[11px] text-gray-500">지정한 시작일부터 다음 패턴을 설정할 때까지 과거/미래 모두 자동 반복됩니다.</p>
+                    <button onclick="openPatternModal()" class="w-full bg-[#FF80AB] hover:bg-[#FF4081] text-white font-bold py-2 rounded-xl text-xs shadow-xs btn-press">
+                        패턴 생성기 실행
+                    </button>
+                </div>
+
+                <div class="bg-white/95 p-3 rounded-2xl border-2 border-[#F8BBD0] space-y-1.5 shadow-2xs">
+                    <h3 class="font-bold text-xs text-[#5A483C]">🔄 초기화</h3>
+                    <button onclick="resetToExactScreenshot()" class="w-full bg-rose-50 hover:bg-rose-100 text-rose-800 font-bold py-1.5 rounded-xl text-xs btn-press">
+                        데이터 및 메모 초기화
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- BOTTOM NAVIGATION BAR -->
+        <div class="absolute bottom-2 left-3 right-3 bg-white/95 backdrop-blur-xs border-2 border-[#F8BBD0] rounded-2xl p-1 flex justify-around items-center shadow-md z-30">
+            <button onclick="switchTab('calendar')" id="tabBtnCalendar" class="flex flex-col items-center py-0.5 px-4 rounded-xl bg-[#FF80AB] text-white font-bold shadow-xs btn-press">
+                <div class="w-5 h-5 flex items-center justify-center">
+                    <i class="fa-solid fa-calendar-days text-sm"></i>
+                </div>
+                <span class="text-xs font-bold">달력</span>
+            </button>
+            <button onclick="switchTab('memo')" id="tabBtnMemo" class="flex flex-col items-center py-0.5 px-4 rounded-xl text-[#8A7363] hover:text-[#5A483C] btn-press">
+                <div class="w-5 h-5 flex items-center justify-center">
+                    <i class="fa-solid fa-pencil text-sm"></i>
+                </div>
+                <span class="text-xs font-bold">메모</span>
+            </button>
+            <button onclick="switchTab('settings')" id="tabBtnSettings" class="flex flex-col items-center py-0.5 px-4 rounded-xl text-[#8A7363] hover:text-[#5A483C] btn-press">
+                <div class="w-5 h-5 flex items-center justify-center">
+                    <i class="fa-solid fa-gear text-sm"></i>
+                </div>
+                <span class="text-xs font-bold">설정</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL 1: EDIT SHIFT -->
+    <div id="shiftModal" class="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white w-full max-w-sm rounded-3xl border-4 border-[#F8BBD0] shadow-2xl p-4 space-y-3">
+            <div class="flex justify-between items-center border-b-2 border-pink-100 pb-2">
+                <h3 id="modalDateHeader" class="font-bold text-sm text-[#5A483C]">근무 입력</h3>
+                <button onclick="closeShiftModal()" class="w-7 h-7 rounded-full bg-pink-100 text-[#5A483C] font-bold text-xs flex items-center justify-center btn-press">✕</button>
+            </div>
+            <div id="shiftButtonsGrid" class="grid grid-cols-3 gap-2 text-xs max-h-48 overflow-y-auto pr-1">
+                <!-- Dynamic Buttons -->
+            </div>
+            <div class="space-y-1.5 pt-2 border-t-2 border-pink-100">
+                <div>
+                    <label class="block text-xs font-bold text-[#5A483C] mb-1">메모 입력 (최대 2개)</label>
+                    <textarea id="modalMemoText" rows="2" placeholder="예: 병원 방문, 회식" class="w-full bg-pink-50/50 border-2 border-pink-200 rounded-xl px-2.5 py-1 text-xs focus:outline-none resize-none"></textarea>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="removeMemoFromDate()" class="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl text-xs btn-press">메모 삭제</button>
+                <button onclick="saveShiftModal()" class="flex-1 py-1.5 bg-[#FF80AB] hover:bg-[#FF4081] text-white font-bold rounded-xl text-xs btn-press shadow-2xs">저장하기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: PATTERN -->
+    <div id="patternModal" class="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white w-full max-w-xs rounded-3xl border-4 border-[#F8BBD0] shadow-2xl p-4 space-y-3">
+            <div class="flex justify-between items-center border-b-2 border-pink-100 pb-2">
+                <h3 class="font-bold text-sm text-[#5A483C]">교대 패턴 구간 추가</h3>
+                <button onclick="closePatternModal()" class="w-7 h-7 rounded-full bg-pink-100 text-[#5A483C] font-bold text-xs flex items-center justify-center btn-press">✕</button>
+            </div>
+            <div class="space-y-2 text-xs">
+                <div>
+                    <label class="block font-bold text-[#5A483C] mb-1">패턴 선택</label>
+                    <select id="patternPreset" class="w-full bg-pink-50/50 border-2 border-pink-200 rounded-xl px-2.5 py-1.5 font-bold text-[#5A483C]">
+                        <option value="A,A,A,WEEKLY_OFF,D,D,D,N,N,N,K,WEEKLY_OFF,OFF,E,E">5조3교대 (오후3-주휴-주간3-야간3-컥데이-주휴-휴무-교육2)</option>
+                        <option value="D,D,N,N,OFF,OFF">4조2교대 (주-주-야-야-휴-휴)</option>
+                        <option value="D,D,N,N,OFF_SHIFT,OFF">3조2교대 (주-주-야-야-비-휴)</option>
+                        <option value="D,N,OFF_SHIFT,OFF">2조2교대 (주-야-비-휴)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-bold text-[#5A483C] mb-1">이 날짜부터 적용 (새 패턴 시작일)</label>
+                    <input type="date" id="patternStartDate" class="w-full bg-pink-50/50 border-2 border-pink-200 rounded-xl px-2.5 py-1.5 font-bold text-[#5A483C]">
+                </div>
+            </div>
+            <div class="flex gap-2 pt-1">
+                <button onclick="closePatternModal()" class="flex-1 py-1.5 bg-gray-100 text-gray-700 font-bold rounded-xl text-xs btn-press">취소</button>
+                <button onclick="applyPattern()" class="flex-1 py-1.5 bg-[#FF80AB] text-white font-bold rounded-xl text-xs btn-press shadow-2xs">구간 추가하기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 3: EDIT SHIFT TYPE -->
+    <div id="editShiftTypeModal" class="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white w-full max-w-xs rounded-3xl border-4 border-[#F8BBD0] shadow-2xl p-4 space-y-3">
+            <div class="flex justify-between items-center border-b-2 border-pink-100 pb-2">
+                <h3 class="font-bold text-sm text-[#5A483C]">근무 형태 수정</h3>
+                <button onclick="closeEditShiftTypeModal()" class="w-7 h-7 rounded-full bg-pink-100 text-[#5A483C] font-bold text-xs flex items-center justify-center btn-press">✕</button>
+            </div>
+            <input type="hidden" id="editShiftOldCode">
+            <div class="space-y-2 text-xs">
+                <div>
+                    <label class="block font-bold text-[#5A483C] mb-1">근무 코드</label>
+                    <input type="text" id="editShiftCode" class="w-full bg-pink-50/50 border-2 border-pink-200 rounded-xl px-2.5 py-1.5 font-bold text-[#5A483C]">
+                </div>
+                <div>
+                    <label class="block font-bold text-[#5A483C] mb-1">근무 명칭</label>
+                    <input type="text" id="editShiftName" class="w-full bg-pink-50/50 border-2 border-pink-200 rounded-xl px-2.5 py-1.5 font-bold text-[#5A483C]">
+                </div>
+                <div>
+                    <label class="block font-bold text-[#5A483C] mb-1">배경 색상</label>
+                    <input type="color" id="editShiftColor" class="w-full h-8 rounded-xl border-2 border-pink-200 cursor-pointer">
+                </div>
+            </div>
+            <div class="flex gap-2 pt-1">
+                <button onclick="closeEditShiftTypeModal()" class="flex-1 py-1.5 bg-gray-100 text-gray-700 font-bold rounded-xl text-xs btn-press">취소</button>
+                <button onclick="saveShiftTypeEdit()" class="flex-1 py-1.5 bg-[#FF80AB] text-white font-bold rounded-xl text-xs btn-press shadow-2xs">저장하기</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // CORE STATE
+        const todayObj = new Date();
+        let state = {
+            currentYear: todayObj.getFullYear(),
+            currentMonth: todayObj.getMonth(), 
+            activeTab: 'calendar',
+            selectedDateStr: null,
+            shifts: {},
+            patterns: [],
+            shiftTypes: {
+                'D': { name: '주간', bg: '#5DA8DC', letter: 'D', isWhiteBg: false },
+                'N': { name: '야간', bg: '#393D6E', letter: 'N', isWhiteBg: false },
+                'A': { name: '오후', bg: '#FBC02D', letter: 'A', isWhiteBg: false }, 
+                'E': { name: '교육', bg: '#4CAF50', letter: 'E', isWhiteBg: false }, 
+                'K': { name: '컥데이', bg: '#FFFFFF', letter: '🛏️', isWhiteBg: true }, 
+                'DA': { name: 'DA(곱)', bg: '#E64A19', letter: 'DA', isWhiteBg: false },
+                'AN': { name: 'AN(곱)', bg: '#3F51B5', letter: 'AN', isWhiteBg: false },
+                '출장': { name: '출장', bg: '#00897B', letter: '출', isWhiteBg: false },
+                '연차': { name: '연차', bg: '#C2185B', letter: '연', isWhiteBg: false },
+                'OFF': { name: '휴무', bg: '#E85D5D', letter: '-', isWhiteBg: false },
+                'OFF_SHIFT': { name: '비번', bg: '#9E9DA2', letter: '비', isWhiteBg: false },
+                'WEEKLY_OFF': { name: '주휴', bg: '#9B6B9E', letter: '-', isWhiteBg: false }
+            }
+        };
+
+        const FIXED_HOLIDAYS = {
+            '01-01': '신정',
+            '03-01': '삼일절',
+            '05-05': '어린이날',
+            '06-06': '현충일',
+            '08-15': '광복절',
+            '10-03': '개천절',
+            '10-09': '한글날',
+            '12-25': '성탄절'
+        };
+
+        const LUNAR_HOLIDAYS = {
+            2024: { '02-09': '설날연휴', '02-10': '설날', '02-11': '설날연휴', '02-12': '대체공휴일', '05-15': '부처님오신날', '09-16': '추석연휴', '09-17': '추석', '09-18': '추석연휴' },
+            2025: { '01-28': '설날연휴', '01-29': '설날', '01-30': '설날연휴', '03-03': '대체공휴일', '05-05': '부처님오신날', '10-05': '추석연휴', '10-06': '추석', '10-07': '추석연휴', '10-08': '대체공휴일' },
+            2026: { '02-16': '설날연휴', '02-17': '설날', '02-18': '설날연휴', '03-02': '대체공휴일', '05-24': '부처님오신날', '05-25': '대체공휴일', '08-17': '대체공휴일', '09-24': '추석연휴', '09-25': '추석', '09-26': '추석연휴', '10-05': '대체공휴일' }
+        };
+
+        function getHolidayName(year, month, day) {
+            const mm = String(month).padStart(2, '0');
+            const dd = String(day).padStart(2, '0');
+            const key = `${mm}-${dd}`;
+            if (FIXED_HOLIDAYS[key]) return FIXED_HOLIDAYS[key];
+            if (LUNAR_HOLIDAYS[year] && LUNAR_HOLIDAYS[year][key]) return LUNAR_HOLIDAYS[year][key];
+            return null;
+        }
+
+        window.onload = function() {
+            loadSavedData();
+            renderCalendar();
+            initSwipeGesture();
+            renderShiftTypeSettingsList();
+        };
+
+        function loadSavedData() {
+            const saved = localStorage.getItem('myshift_data_v23');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    state = { ...state, ...parsed };
+                    return;
+                } catch(e) { console.error(e); }
+            }
+            resetToExactScreenshot(false);
+        }
+
+        function saveData() {
+            localStorage.setItem('myshift_data_v23', JSON.stringify(state));
+        }
+
+        function resetToExactScreenshot(notify = true) {
+            const d = new Date();
+            state.currentYear = d.getFullYear();
+            state.currentMonth = d.getMonth();
+            state.shifts = {};
+            state.patterns = [];
+
+            saveData();
+            renderCalendar();
+            renderShiftTypeSettingsList();
+            if(notify) alert('데이터 및 메모가 초기화되었습니다.');
+        }
+
+        function getTodayStr() {
+            const d = new Date();
+            return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        }
+
+        function changeMonth(offset, triggerSwipeEffect = false) {
+            state.currentMonth += offset;
+            if (state.currentMonth > 11) { state.currentMonth = 0; state.currentYear++; }
+            else if (state.currentMonth < 0) { state.currentMonth = 11; state.currentYear--; }
+            saveData();
+            renderCalendar();
+
+            if (triggerSwipeEffect) {
+                triggerFloatingHearts();
+            }
+        }
+
+        function goToToday() {
+            const d = new Date();
+            state.currentYear = d.getFullYear();
+            state.currentMonth = d.getMonth();
+            saveData();
+            renderCalendar();
+        }
+
+        // ================== SHIFT TYPES EDIT/ADD/DELETE MANAGEMENT ==================
+        function renderShiftTypeSettingsList() {
+            const container = document.getElementById('shiftTypeListContainer');
+            if (!container) return;
+            let html = '';
+            for (let code in state.shiftTypes) {
+                const s = state.shiftTypes[code];
+                const borderStyle = s.isWhiteBg ? 'border-2 border-[#FF80AB]' : '';
+                const textColor = s.isWhiteBg ? 'text-black' : 'text-white';
+                html += `
+                    <div class="flex items-center justify-between bg-white px-3 py-1.5 rounded-xl border border-pink-100 shadow-2xs">
+                        <div class="flex items-center gap-2 cursor-pointer" onclick="openEditShiftTypeModal('${code}')" title="클릭하여 수정">
+                            <div class="shift-circle ${textColor} ${borderStyle}" style="background-color:${s.bg}">
+                                ${s.letter}
+                            </div>
+                            <span class="font-bold text-[#5A483C] text-xs">${s.name} <span class="text-[10px] text-gray-400">(${code})</span></span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <button onclick="openEditShiftTypeModal('${code}')" class="text-blue-500 hover:text-blue-700 text-xs font-bold px-1.5 py-1" title="수정"><i class="fa-solid fa-pen-to-square"></i></button>
+                            <button onclick="deleteShiftType('${code}')" class="text-rose-500 hover:text-rose-700 text-xs font-bold px-1.5 py-1" title="삭제"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </div>
+                `;
+            }
+            container.innerHTML = html;
+        }
+
+        function addNewShiftType() {
+            const code = document.getElementById('newShiftCode').value.trim();
+            const name = document.getElementById('newShiftName').value.trim();
+            const color = document.getElementById('newShiftColor').value;
+
+            if (!code || !name) {
+                alert('코드와 명칭을 모두 입력해주세요.');
+                return;
+            }
+
+            state.shiftTypes[code] = {
+                name: name,
+                bg: color,
+                letter: code,
+                isWhiteBg: color.toUpperCase() === '#FFFFFF'
+            };
+
+            saveData();
+            renderShiftTypeSettingsList();
+            renderCalendar();
+            document.getElementById('newShiftCode').value = '';
+            document.getElementById('newShiftName').value = '';
+            alert(`[${name}] 근무 형태가 추가되었습니다!`);
+        }
+
+        function openEditShiftTypeModal(code) {
+            const s = state.shiftTypes[code];
+            if (!s) return;
+            document.getElementById('editShiftOldCode').value = code;
+            document.getElementById('editShiftCode').value = code;
+            document.getElementById('editShiftName').value = s.name;
+            document.getElementById('editShiftColor').value = s.bg;
+            document.getElementById('editShiftTypeModal').classList.remove('hidden');
+        }
+
+        function closeEditShiftTypeModal() {
+            document.getElementById('editShiftTypeModal').classList.add('hidden');
+        }
+
+        function saveShiftTypeEdit() {
+            const oldCode = document.getElementById('editShiftOldCode').value;
+            const newCode = document.getElementById('editShiftCode').value.trim();
+            const newName = document.getElementById('editShiftName').value.trim();
+            const color = document.getElementById('editShiftColor').value;
+
+            if (!newCode || !newName) {
+                alert('코드와 명칭을 입력해주세요.');
+                return;
+            }
+
+            if (oldCode !== newCode) {
+                delete state.shiftTypes[oldCode];
+            }
+
+            state.shiftTypes[newCode] = {
+                name: newName,
+                bg: color,
+                letter: newCode === 'K' ? '🛏️' : newCode,
+                isWhiteBg: color.toUpperCase() === '#FFFFFF'
+            };
+
+            saveData();
+            renderShiftTypeSettingsList();
+            renderCalendar();
+            closeEditShiftTypeModal();
+            alert('근무 형태 수정이 완료되었습니다!');
+        }
+
+        function deleteShiftType(code) {
+            if (Object.keys(state.shiftTypes).length <= 1) {
+                alert('최소 1개의 근무 형태는 유지되어야 합니다.');
+                return;
+            }
+            if (confirm(`[${state.shiftTypes[code].name}] 근무 형태를 삭제하시겠습니까?`)) {
+                delete state.shiftTypes[code];
+                saveData();
+                renderShiftTypeSettingsList();
+                renderCalendar();
+            }
+        }
+
+        function renderShiftButtonsInModal() {
+            const grid = document.getElementById('shiftButtonsGrid');
+            if (!grid) return;
+            let html = '';
+            for (let code in state.shiftTypes) {
+                const s = state.shiftTypes[code];
+                const borderStyle = s.isWhiteBg ? 'border-2 border-[#FF80AB]' : '';
+                const textColor = s.isWhiteBg ? 'text-black' : 'text-white';
+                html += `
+                    <button onclick="applyShiftToDate('${code}')" class="p-1.5 bg-pink-50/50 hover:bg-pink-100 text-[#5A483C] border-2 border-pink-200 rounded-2xl font-bold flex flex-col items-center gap-1 btn-press">
+                        <div class="shift-circle ${textColor} ${borderStyle}" style="background-color:${s.bg}">
+                            ${s.letter}
+                        </div>
+                        <span class="truncate max-w-[65px] text-xs font-bold">${s.name}</span>
+                    </button>
+                `;
+            }
+            grid.innerHTML = html;
+        }
+
+        // ================== TOUCH SWIPE & FLOATING HEARTS ==================
+        function initSwipeGesture() {
+            const area = document.getElementById('mainScrollArea');
+            let startX = 0;
+            let startY = 0;
+
+            area.addEventListener('touchstart', (e) => {
+                startX = e.touches[0].clientX;
+                startY = e.touches[0].clientY;
+            }, {passive: true});
+
+            area.addEventListener('touchend', (e) => {
+                let endX = e.changedTouches[0].clientX;
+                let endY = e.changedTouches[0].clientY;
+                let diffX = endX - startX;
+                let diffY = endY - startY;
+
+                if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
+                    if (diffX > 0) {
+                        changeMonth(-1, true);
+                    } else {
+                        changeMonth(1, true);
+                    }
+                }
+            }, {passive: true});
+        }
+
+        function triggerFloatingHearts() {
+            const container = document.getElementById('mainScrollArea');
+            const heartSymbols = ['💖', '✨', '💕', '🌸', '🩷'];
+            
+            for (let i = 0; i < 7; i++) {
+                const heart = document.createElement('div');
+                heart.className = 'floating-heart';
+                heart.innerText = heartSymbols[Math.floor(Math.random() * heartSymbols.length)];
+                
+                const randomX = Math.random() * (container.clientWidth - 50);
+                const randomBottom = 50 + Math.random() * 100;
+                const randomSize = 14 + Math.random() * 16;
+
+                heart.style.left = `${randomX}px`;
+                heart.style.bottom = `${randomBottom}px`;
+                heart.style.fontSize = `${randomSize}px`;
+
+                container.appendChild(heart);
+                setTimeout(() => {
+                    heart.remove();
+                }, 800);
+            }
+        }
+
+        // ================== PATTERN ENGINE ==================
+        function getShiftForDate(dStr) {
+            if (state.shifts[dStr] !== undefined && state.shifts[dStr].type !== undefined) {
+                return state.shifts[dStr];
+            }
+
+            let manualType = state.shifts[dStr]?.type;
+
+            if (state.patterns && state.patterns.length > 0) {
+                const sortedPatterns = [...state.patterns].sort((a, b) => a.startDateStr.localeCompare(b.startDateStr));
+                
+                let activePattern = sortedPatterns[0];
+                for (let p of sortedPatterns) {
+                    if (dStr >= p.startDateStr) {
+                        activePattern = p;
+                    } else {
+                        break;
+                    }
+                }
+
+                if (activePattern) {
+                    const [sY, sM, sD] = activePattern.startDateStr.split('-').map(Number);
+                    const startDt = new Date(sY, sM - 1, sD);
+
+                    const [tY, tM, tD] = dStr.split('-').map(Number);
+                    const targetDt = new Date(tY, tM - 1, tD);
+
+                    const diffTime = targetDt.getTime() - startDt.getTime();
+                    let diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+                    const arr = activePattern.patternArr;
+                    const len = arr.length;
+
+                    let patternIndex = diffDays % len;
+                    if (patternIndex < 0) {
+                        patternIndex = (patternIndex + len) % len;
+                    }
+
+                    const patternType = arr[patternIndex];
+                    return { 
+                        type: manualType !== undefined ? manualType : patternType, 
+                        memo: state.shifts[dStr]?.memo || '' 
+                    };
+                }
+            }
+            return state.shifts[dStr] || null;
+        }
+
+        // ================== CALENDAR RENDER ENGINE ==================
+        function renderCalendar() {
+            const monthEng = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+            
+            document.getElementById('displayTitleName').innerText = `똘영이 Calendar`;
+            document.getElementById('displaySubTitle').innerText = `${monthEng[state.currentMonth]} ${state.currentYear}`;
+
+            const calGrid = document.getElementById('calendarGrid');
+            const firstDay = new Date(state.currentYear, state.currentMonth, 1).getDay();
+            const daysInMonth = new Date(state.currentYear, state.currentMonth + 1, 0).getDate();
+            let html = '';
+
+            for (let i = 0; i < firstDay; i++) {
+                html += `<div class="empty-day-card min-h-[92px]"></div>`;
+            }
+
+            const todayStr = getTodayStr();
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dStr = `${state.currentYear}-${String(state.currentMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+                const date = new Date(state.currentYear, state.currentMonth, day);
+                const dow = date.getDay();
+                const holidayName = getHolidayName(state.currentYear, state.currentMonth + 1, day);
+                const isToday = (dStr === todayStr);
+
+                const shift = getShiftForDate(dStr);
+                
+                // 근무형태 셀 - 완벽하게 정돈된 원형 뱃지 렌더링
+                let shiftHtml = `<div class="shift-circle hover:bg-pink-50 cursor-pointer border border-dashed border-[#F8BBD0] text-pink-300 text-xs"><i class="fa-solid fa-plus text-xs"></i></div>`;
+
+                if (shift && shift.type && state.shiftTypes[shift.type]) {
+                    const sType = state.shiftTypes[shift.type];
+                    const borderStyle = sType.isWhiteBg ? 'border-2 border-[#FF80AB]' : '';
+                    const textColor = sType.isWhiteBg ? 'text-black' : 'text-white';
+                    
+                    shiftHtml = `
+                        <div class="shift-circle ${textColor} ${borderStyle}" style="background-color: ${sType.bg};" title="${sType.name}">
+                            ${sType.letter}
+                        </div>
+                    `;
+                }
+
+                // 메모 영역
+                let memoListHtml = '<div class="w-full mt-1 space-y-0.5 flex flex-col overflow-hidden min-h-[16px]"></div>';
+                if (shift && shift.memo && shift.memo.trim() !== '') {
+                    const rawMemos = shift.memo.split(/[\n,;/]+/).map(m => m.trim()).filter(m => m.length > 0);
+                    const displayMemos = rawMemos.slice(0, 1);
+
+                    memoListHtml = '<div class="w-full mt-1 space-y-0.5 flex flex-col overflow-hidden min-h-[16px]">';
+                    displayMemos.forEach(mText => {
+                        memoListHtml += `
+                            <div class="bg-pink-100/95 text-[#5A483C] text-[9.5px] px-1 py-0.2 rounded font-bold truncate text-center leading-tight shadow-2xs border border-pink-200" title="${mText}">
+                                📌 ${mText}
+                            </div>
+                        `;
+                    });
+                    memoListHtml += '</div>';
+                }
+
+                let textClass = "text-[#5A483C]";
+                if (dow === 0 || holidayName) textClass = "text-rose-600 font-extrabold";
+                else if (dow === 6) textClass = "text-blue-600 font-extrabold";
+
+                let todayBadge = isToday ? `<span class="absolute top-0.5 right-0.5 bg-[#FF4081] text-white text-[8.5px] px-1 rounded-full font-black animate-pulse shadow-xs">오늘</span>` : '';
+                let todayClass = isToday ? "is-today" : "";
+
+                let holidayHtml = holidayName ? 
+                    `<span class="text-[9px] text-rose-500 font-bold truncate max-w-[48px]">${holidayName}</span>` : 
+                    `<span class="text-[9px] opacity-0 select-none">공휴일</span>`;
+
+                html += `
+                    <div class="day-card ${todayClass}" onclick="openShiftModal('${dStr}')">
+                        ${todayBadge}
+                        <div class="flex flex-col items-center leading-none">
+                            <span class="text-sm font-black ${textClass}">${day}</span>
+                            ${holidayHtml}
+                        </div>
+                        ${shiftHtml}
+                        ${memoListHtml}
+                    </div>
+                `;
+            }
+            calGrid.innerHTML = html;
+        }
+
+        // ================== SHIFT MODAL ==================
+        function openShiftModal(dStr) {
+            state.selectedDateStr = dStr;
+            document.getElementById('modalDateHeader').innerText = `${dStr} 근무 입력`;
+            const shift = getShiftForDate(dStr);
+            document.getElementById('modalMemoText').value = shift && shift.memo ? shift.memo : '';
+            renderShiftButtonsInModal();
+            document.getElementById('shiftModal').classList.remove('hidden');
+        }
+
+        function closeShiftModal() {
+            document.getElementById('shiftModal').classList.add('hidden');
+            state.selectedDateStr = null;
+        }
+
+        function applyShiftToDate(type) {
+            if (!state.selectedDateStr) return;
+            const memo = document.getElementById('modalMemoText').value;
+            const existing = state.shifts[state.selectedDateStr] || {};
+            state.shifts[state.selectedDateStr] = { type: type, memo: memo !== '' ? memo : (existing.memo || '') };
+            saveData();
+            renderCalendar();
+            closeShiftModal();
+        }
+
+        function saveShiftModal() {
+            if (!state.selectedDateStr) return;
+            const memoVal = document.getElementById('modalMemoText').value;
+            const currentShift = getShiftForDate(state.selectedDateStr) || { type: 'OFF' };
+            state.shifts[state.selectedDateStr] = { type: currentShift.type, memo: memoVal };
+            saveData();
+            renderCalendar();
+            closeShiftModal();
+        }
+
+        function removeMemoFromDate() {
+            if (!state.selectedDateStr) return;
+            const currentShift = getShiftForDate(state.selectedDateStr);
+            if (currentShift) {
+                state.shifts[state.selectedDateStr] = { type: currentShift.type, memo: '' };
+            } else {
+                state.shifts[state.selectedDateStr] = { type: 'OFF', memo: '' };
+            }
+            saveData();
+            renderCalendar();
+            closeShiftModal();
+        }
+
+        // ================== PATTERN MODAL ==================
+        function openPatternModal() {
+            document.getElementById('patternModal').classList.remove('hidden');
+            document.getElementById('patternStartDate').value = getTodayStr();
+        }
+
+        function closePatternModal() {
+            document.getElementById('patternModal').classList.add('hidden');
+        }
+
+        function applyPattern() {
+            const presetStr = document.getElementById('patternPreset').value;
+            const startDateStr = document.getElementById('patternStartDate').value;
+            if(!startDateStr) return alert('시작일을 선택하세요.');
+
+            const patternArr = presetStr.split(',');
+
+            state.patterns = state.patterns.filter(p => p.startDateStr !== startDateStr);
+            state.patterns.push({
+                startDateStr: startDateStr,
+                patternArr: patternArr
+            });
+            state.patterns.sort((a, b) => a.startDateStr.localeCompare(b.startDateStr));
+
+            saveData();
+            renderCalendar();
+            closePatternModal();
+            alert(`[${startDateStr}] 이후부터 새로운 패턴이 무한 반복 적용됩니다!`);
+        }
+
+        // ================== TAB NAVIGATION ==================
+        function switchTab(tab) {
+            state.activeTab = tab;
+            ['calendar', 'memo', 'settings'].forEach(t => {
+                const el = document.getElementById(t + 'View');
+                if(el) el.classList.toggle('hidden', t !== tab);
+                const btn = document.getElementById('tabBtn' + t.charAt(0).toUpperCase() + t.slice(1));
+                if(btn) {
+                    if(t === tab) {
+                        btn.className = "flex flex-col items-center py-0.5 px-4 rounded-xl bg-[#FF80AB] text-white font-bold shadow-xs btn-press";
+                    } else {
+                        btn.className = "flex flex-col items-center py-0.5 px-4 rounded-xl text-[#8A7363] hover:text-[#5A483C] btn-press";
+                    }
+                }
+            });
+
+            if(tab === 'memo') {
+                renderMemoView();
+            } else if(tab === 'settings') {
+                renderShiftTypeSettingsList();
+            }
+        }
+
+        function renderMemoView() {
+            const container = document.getElementById('memoListContainer');
+            if(!container) return;
+            let html = '';
+            
+            let memoEntries = [];
+            const daysInMonth = new Date(state.currentYear, state.currentMonth + 1, 0).getDate();
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dStr = `${state.currentYear}-${String(state.currentMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+                const shift = getShiftForDate(dStr);
+                if (shift && shift.memo && shift.memo.trim() !== '') {
+                    memoEntries.push([dStr, shift]);
+                }
+            }
+
+            if(memoEntries.length === 0) {
+                container.innerHTML = `<div class="bg-white/95 p-4 rounded-2xl text-center text-xs text-gray-500 border border-[#F8BBD0]">이번 달에 작성된 메모가 없습니다. 달력 날짜를 터치해 메모를 남겨보세요!</div>`;
+                return;
+            }
+            
+            memoEntries.forEach(([dStr, v]) => {
+                const sType = state.shiftTypes[v.type] || { name: v.type };
+                html += `
+                    <div class="bg-white/95 p-3 rounded-2xl border border-[#F8BBD0] flex justify-between items-center shadow-2xs">
+                        <div>
+                            <span class="text-xs font-bold text-pink-600">${dStr}</span>
+                            <p class="text-xs text-[#5A483C] mt-0.5 font-bold">${v.memo}</p>
+                        </div>
+                        <span class="text-[10px] bg-pink-100 text-pink-900 px-2.5 py-1 rounded-full font-bold">${sType.name}</span>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function addNewMemoPrompt() {
+            alert('달력에서 메모를 남길 날짜를 눌러 메모를 입력할 수 있습니다.');
+            switchTab('calendar');
+        }
+    </script>
+</body>
+</html>
